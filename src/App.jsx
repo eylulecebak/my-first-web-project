@@ -13,7 +13,7 @@ function App() {
         margin: 0,
       }}
     >
-      <h1 style={{ fontSize: '4rem', margin: 0 }}>Eylül 👋</h1>
+      <h1 style={{ fontSize: '4rem', margin: 0 }}>Eylül </h1>
       <p style={{ opacity: 0.8 }}>My first web project</p>
     </main>
   )
