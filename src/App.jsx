@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API_URL =  'https://glasskinapp.com/eyumece_backend'
 
 function App() {
   const [todos, setTodos] = useState([])
