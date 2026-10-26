@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 
-const API_URL =  'https://glasskinapp.com/eyumece_backend'
+const API_URL = import.meta.env.VITE_API_URL || 'https://glasskinapp.com/eyumece_backend'
 
 function App() {
   const [todos, setTodos] = useState([])
   const [text, setText] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState(null)
+  const [editText, setEditText] = useState('')
 
   // Get the list from the backend
   async function loadTodos() {
@@ -72,6 +74,38 @@ function App() {
     }
   }
 
+  // Pencil clicked: show an input with the current text
+  function startEdit(todo) {
+    setEditingId(todo.id)
+    setEditText(todo.text)
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setEditText('')
+  }
+
+  // Save the new text to the backend
+  async function saveEdit(e, id) {
+    e.preventDefault()
+    const newText = editText.trim()
+    if (!newText) return
+    try {
+      const res = await fetch(`${API_URL}/todos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newText }),
+      })
+      if (!res.ok) throw new Error()
+      const updated = await res.json()
+      setTodos((current) => current.map((t) => (t.id === id ? updated : t)))
+      cancelEdit()
+      setError('')
+    } catch {
+      setError("Couldn't save the task. Is the backend running?")
+    }
+  }
+
   return (
     <main style={styles.page}>
       <div style={styles.card}>
@@ -96,17 +130,36 @@ function App() {
         <ul style={styles.list}>
           {todos.map((todo) => (
             <li key={todo.id} style={styles.item}>
-              <label style={styles.label}>
-                <input
-                  type="checkbox"
-                  checked={todo.done}
-                  onChange={() => toggleTodo(todo.id)}
-                />
-                <span style={{ textDecoration: todo.done ? 'line-through' : 'none', opacity: todo.done ? 0.5 : 1 }}>
-                  {todo.text}
-                </span>
-              </label>
-              <button onClick={() => deleteTodo(todo.id)} style={styles.deleteButton}>✕</button>
+              {editingId === todo.id ? (
+                <form onSubmit={(e) => saveEdit(e, todo.id)} style={styles.editForm}>
+                  <input
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Escape' && cancelEdit()}
+                    autoFocus
+                    style={styles.editInput}
+                  />
+                  <button type="submit" style={styles.saveButton}>Save</button>
+                  <button type="button" onClick={cancelEdit} style={styles.iconButton} title="Cancel">↩️</button>
+                </form>
+              ) : (
+                <>
+                  <label style={styles.label}>
+                    <input
+                      type="checkbox"
+                      checked={todo.done}
+                      onChange={() => toggleTodo(todo.id)}
+                    />
+                    <span style={{ textDecoration: todo.done ? 'line-through' : 'none', opacity: todo.done ? 0.5 : 1 }}>
+                      {todo.text}
+                    </span>
+                  </label>
+                  <div style={styles.actions}>
+                    <button onClick={() => startEdit(todo)} style={styles.iconButton} title="Edit">✏️</button>
+                    <button onClick={() => deleteTodo(todo.id)} style={styles.iconButton} title="Delete">✕</button>
+                  </div>
+                </>
+              )}
             </li>
           ))}
         </ul>
@@ -125,9 +178,13 @@ const styles = {
   error: { background: 'rgba(255,80,80,0.2)', padding: '8px 12px', borderRadius: 8 },
   muted: { opacity: 0.7 },
   list: { listStyle: 'none', padding: 0, margin: 0 },
-  item: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.1)' },
+  item: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.1)' },
   label: { display: 'flex', gap: 10, alignItems: 'center', cursor: 'pointer' },
-  deleteButton: { background: 'none', border: 'none', color: 'white', opacity: 0.6, cursor: 'pointer', fontSize: 16 },
+  actions: { display: 'flex', gap: 4 },
+  iconButton: { background: 'none', border: 'none', color: 'white', opacity: 0.7, cursor: 'pointer', fontSize: 16 },
+  editForm: { display: 'flex', gap: 6, flex: 1 },
+  editInput: { flex: 1, padding: '6px 10px', borderRadius: 6, border: 'none', fontSize: 15 },
+  saveButton: { padding: '6px 12px', borderRadius: 6, border: 'none', background: '#c084fc', color: 'white', fontWeight: 600, cursor: 'pointer' },
 }
 
 export default App
